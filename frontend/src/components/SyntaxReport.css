@@ -1,0 +1,36 @@
+.syntax-report {
+  margin: 20px auto;
+  width: 90%;
+  text-align: center;
+}
+
+.syntax-report h2 {
+  margin-bottom: 15px;
+  color: #2c3e50;
+}
+
+.syntax-report table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', sans-serif;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.syntax-report th, .syntax-report td {
+  border: 1px solid #ccc;
+  padding: 10px;
+}
+
+.syntax-report th {
+  background-color: #333;
+  color: white;
+}
+
+.valid {
+  background-color: #eaffea;
+}
+
+.error {
+  background-color: #ffeaea;
+  color: #b20000;
+}
