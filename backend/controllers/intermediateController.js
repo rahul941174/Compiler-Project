@@ -1,107 +1,105 @@
-// controllers/intermediateController.js
+let labelCount = 0;
+function createLabel() {
+  return `LABEL${labelCount++}`;
+}
 
-// A simple helper function to generate unique temp variable names
 function createTempVarGenerator() {
   let count = 0;
   return () => `t${++count}`;
 }
 
-// Helper function to tokenize expressions simply by operators
 function tokenizeExpression(expr) {
-  // Split expression by operators but keep them as tokens
-  // Operators supported: + - * / ( )
   const regex = /(\+|\-|\*|\/|\(|\))/g;
-  let tokens = expr.split(regex).map(t => t.trim()).filter(t => t.length > 0);
-  return tokens;
+  return expr.split(regex).map(t => t.trim()).filter(t => t.length > 0);
 }
 
-// Recursive function to generate intermediate code for an expression
-// using a simple operator precedence (only * / higher than + -)
 function generateExprIntermediate(tokens, tempVarGen, intermediate) {
-  // Shunting-yard algorithm or simple precedence parser can be complex.
-  // We'll do this in two passes for demonstration: first * and /, then + and -
-
-  // Pass 1: handle * and /
   let i = 0;
   while (i < tokens.length) {
     if (tokens[i] === '*' || tokens[i] === '/') {
-      const op = tokens[i];
-      const left = tokens[i - 1];
-      const right = tokens[i + 1];
+      const op = tokens[i], left = tokens[i - 1], right = tokens[i + 1];
       const tempVar = tempVarGen();
-
       intermediate.push(`${tempVar} = ${left} ${op} ${right}`);
-
-      // Replace tokens i-1 to i+1 with tempVar
       tokens.splice(i - 1, 3, tempVar);
-      i = 0; // restart scan
-    } else {
-      i++;
-    }
+      i = 0;
+    } else i++;
   }
 
-  // Pass 2: handle + and -
   i = 0;
   while (i < tokens.length) {
     if (tokens[i] === '+' || tokens[i] === '-') {
-      const op = tokens[i];
-      const left = tokens[i - 1];
-      const right = tokens[i + 1];
+      const op = tokens[i], left = tokens[i - 1], right = tokens[i + 1];
       const tempVar = tempVarGen();
-
       intermediate.push(`${tempVar} = ${left} ${op} ${right}`);
-
-      // Replace tokens i-1 to i+1 with tempVar
       tokens.splice(i - 1, 3, tempVar);
-      i = 0; // restart scan
-    } else {
-      i++;
-    }
+      i = 0;
+    } else i++;
   }
 
-  // After processing, tokens should have a single token which is the result
   return tokens[0];
 }
 
-// Main handler
 exports.handleIntermediateCode = (req, res) => {
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: 'Code is required' });
 
   const intermediate = [];
   const tempVarGen = createTempVarGenerator();
+  const lines = code.split('\n').map(l => l.trim()).filter(Boolean);
 
-  const lines = code.split('\n').map(line => line.trim()).filter(Boolean);
+  let i = 0;
+  while (i < lines.length) {
+    let line = lines[i];
 
-  lines.forEach(line => {
-    // Only handle simple assignments: e.g. a = b + c * d;
-    if (line.includes('=')) {
-      const parts = line.split('=');
-      if (parts.length !== 2) {
-        intermediate.push(`// Unsupported statement: ${line}`);
-        return;
+    // Handle if-condition
+    if (line.startsWith('if') && line.includes('(') && line.includes(')')) {
+      const conditionMatch = line.match(/\((.*?)\)/);
+      const condition = conditionMatch ? conditionMatch[1].trim() : null;
+
+      const [left, op, right] = condition.split(/([<>=!]+)/).map(t => t.trim());
+      const trueLabel = createLabel();
+      const endLabel = createLabel();
+
+      intermediate.push(`IF ${left} ${op} ${right} GOTO ${trueLabel}`);
+      intermediate.push(`GOTO ${endLabel}`);
+      intermediate.push(`${trueLabel}:`);
+
+      i++; // Skip to next line after 'if (...)'
+      if (lines[i] === '{') i++; // skip opening brace
+
+      // Process block until '}'
+      while (i < lines.length && lines[i] !== '}') {
+        const stmt = lines[i];
+        if (stmt.includes('=')) {
+          const [lhs, rhsRaw] = stmt.split('=');
+          let rhs = rhsRaw.replace(';', '').trim();
+          const tokens = tokenizeExpression(rhs);
+          const result = generateExprIntermediate(tokens, tempVarGen, intermediate);
+          intermediate.push(`${lhs.trim()} = ${result}`);
+        }
+        i++;
       }
 
-      const left = parts[0].trim();
-      let right = parts[1].trim();
-
-      // Remove trailing semicolon if exists
-      if (right.endsWith(';')) right = right.slice(0, -1).trim();
-
-      // Tokenize right expression
-      let tokens = tokenizeExpression(right);
-
-      // Generate intermediate for expression
-      const resultVar = generateExprIntermediate(tokens, tempVarGen, intermediate);
-
-      // Final assignment
-      intermediate.push(`${left} = ${resultVar}`);
-
-    } else {
-      // For non-assignment lines, just comment
-      intermediate.push(`// Unsupported or non-assignment line: ${line}`);
+      intermediate.push(`${endLabel}:`);
+      i++; // skip closing brace
     }
-  });
+
+    // Handle assignment
+    else if (line.includes('=')) {
+      const [lhs, rhsRaw] = line.split('=');
+      let rhs = rhsRaw.replace(';', '').trim();
+      const tokens = tokenizeExpression(rhs);
+      const result = generateExprIntermediate(tokens, tempVarGen, intermediate);
+      intermediate.push(`${lhs.trim()} = ${result}`);
+      i++;
+    }
+
+    // Unsupported lines
+    else {
+      intermediate.push(`// Unsupported or non-assignment line: ${line}`);
+      i++;
+    }
+  }
 
   res.json({ code: intermediate });
 };

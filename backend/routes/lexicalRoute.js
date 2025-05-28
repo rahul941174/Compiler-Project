@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { tokenize } = require('../lexer/lexicalAnalyzer');
+const { tokenize } = require('../controllers/lexicalController');
 
 router.post('/lexical', (req, res) => {
   const { code } = req.body;

@@ -1,52 +1,59 @@
 .phase-card {
-  background: white;
   border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 16px 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.3s, box-shadow 0.3s;
+  width: 140px;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .phase-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
-.phase-button {
-  border: none;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 4px;
+.phase-card .phase-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.phase-card .phase-description {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.highlight-card {
+  width: 320px;
+  height: 180px;
+  border-radius: 1rem;
+  box-shadow: 0 0 25px #7c3aed;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-weight: 900;
+  font-size: 1.75rem;
   cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: background-color 0.2s;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Ripple animation */
-.phase-button:after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  background: rgba(255,255,255,0.5);
-  opacity: 0;
-  border-radius: 100%;
-  transform: translate(-50%, -50%);
+.highlight-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 35px #a78bfa;
 }
 
-.phase-button:focus:not(:active)::after {
-  animation: ripple 0.6s ease-out;
-}
-
-@keyframes ripple {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.5;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(20);
-    opacity: 0;
-  }
-}
+/* Remove these background colors or comment them out */
+/*
+.phase-card.lexical { background-color: #e0e7ff; }
+.phase-card.syntax { background-color: #d1fae5; }
+.phase-card.semantic { background-color: #bfdbfe; }
+.phase-card.intermediate { background-color: #fef3c7; }
+*/

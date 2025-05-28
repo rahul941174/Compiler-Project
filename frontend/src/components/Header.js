@@ -32,11 +32,18 @@ function Header() {
             Syntax
           </Link>
           <Link 
+            to="/semantic" 
+            className={`nav-link ${location.pathname === '/semantic' ? 'active' : ''}`}
+          >
+            Semantic
+          </Link>
+          <Link 
             to="/intermediate" 
             className={`nav-link ${location.pathname === '/intermediate' ? 'active' : ''}`}
           >
             Intermediate
           </Link>
+          
         </nav>
       </div>
     </header>

@@ -8,14 +8,22 @@ function FileUploader({ onFileLoad }) {
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target.result;
-      onFileLoad(content); // Pass content to parent
+      onFileLoad(content);
     };
     reader.readAsText(file);
   };
 
   return (
-    <div style={{ margin: '10px auto', width: '80%' }}>
-      <input type="file" accept=".c" onChange={handleFileChange} />
+    <div className="file-upload-box">
+      <label style={{ cursor: 'pointer', fontWeight: '500', color: '#1e3a8a' }}>
+        📁 Upload .c file:
+        <input
+          type="file"
+          accept=".c"
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+      </label>
     </div>
   );
 }
