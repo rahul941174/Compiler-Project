@@ -14,7 +14,8 @@ exports.handleSemanticAnalysis = (req, res) => {
   };
 
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
+    const line = lines[i];
+
     if (line === '{') {
       scopeStack.push(new Set());
       results.push({ code: line, status: '✅ Scope Start', error: '' });
@@ -24,6 +25,11 @@ exports.handleSemanticAnalysis = (req, res) => {
     if (line === '}') {
       scopeStack.pop();
       results.push({ code: line, status: '✅ Scope End', error: '' });
+      continue;
+    }
+
+    if (line.startsWith('int ') && /\(\s*\)/.test(line)) {
+      results.push({ code: line, status: '✅ Valid', error: '' });
       continue;
     }
 
@@ -48,8 +54,7 @@ exports.handleSemanticAnalysis = (req, res) => {
       continue;
     }
 
-    // Handle declarations: int a = 10; or int b;
-    if (line.startsWith('int ') || line.startsWith('float ')) {
+    if (line.startsWith('int ') || line.startsWith('float ') || line.startsWith('char ') || line.startsWith('double ')) {
       const parts = line.split(/\s+/);
       const type = parts[0];
       const declaration = line.slice(type.length).trim().replace(/;$/, '');
@@ -63,7 +68,22 @@ exports.handleSemanticAnalysis = (req, res) => {
       continue;
     }
 
-    // Handle assignments: a = b + 1;
+    if (line.startsWith('return')) {
+      const returnExpr = line.replace('return', '').replace(/;$/, '').trim();
+      const vars = returnExpr.split(/[^a-zA-Z0-9_]/).filter(v => /^[a-zA-Z_]\w*$/.test(v));
+      let hasError = false;
+      for (const id of vars) {
+        if (!isDeclared(id)) {
+          results.push({ code: line, status: '❌ Error', error: `Use of undeclared variable '${id}' in return` });
+          hasError = true;
+        }
+      }
+      if (!hasError) {
+        results.push({ code: line, status: '✅ Valid', error: '' });
+      }
+      continue;
+    }
+
     if (line.includes('=')) {
       const cleanLine = line.replace(/;$/, '');
       const [lhs, rhs] = cleanLine.split('=').map(s => s.trim());
@@ -93,7 +113,6 @@ exports.handleSemanticAnalysis = (req, res) => {
       continue;
     }
 
-    // Catch-all for unsupported lines
     results.push({ code: line, status: '❌ Error', error: 'Unsupported or invalid syntax' });
   }
 

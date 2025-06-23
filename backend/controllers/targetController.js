@@ -1,5 +1,3 @@
-// targetController.js
-
 function generateTargetCode(req, res) {
   const { intermediateCode } = req.body;
 
@@ -7,15 +5,10 @@ function generateTargetCode(req, res) {
     return res.status(400).json({ error: 'Invalid or missing intermediate code' });
   }
 
-  const assemblyCode = intermediateCode.map((line, index) => {
-    if (line.startsWith('//')) {
-      return `; ${line}`; // Treat comments as assembly comments
-    }
-
+  const assemblyCode = intermediateCode.map(line => {
     if (line.includes('IF') && line.includes('GOTO')) {
-      // Handle conditional jump
-      const parts = line.split(/IF\s+|\s+GOTO\s+/).filter(Boolean); // [cond, label]
-      return `CMP ${parts[0]} \nJMP_IF_TRUE ${parts[1]}`;
+      const parts = line.split(/IF\s+|\s+GOTO\s+/).filter(Boolean);
+      return `CMP ${parts[0]}\nJMP_IF_TRUE ${parts[1]}`;
     }
 
     if (line.startsWith('GOTO')) {
@@ -24,7 +17,7 @@ function generateTargetCode(req, res) {
     }
 
     if (line.endsWith(':')) {
-      return `${line}`; // Label definition
+      return `${line}`;
     }
 
     if (line.includes('=')) {

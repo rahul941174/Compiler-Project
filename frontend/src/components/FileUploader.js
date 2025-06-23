@@ -14,8 +14,17 @@ function FileUploader({ onFileLoad }) {
   };
 
   return (
-    <div className="file-upload-box">
-      <label style={{ cursor: 'pointer', fontWeight: '500', color: '#1e3a8a' }}>
+    <div className="file-upload-box"  
+          style={{
+                  width: '200px',
+                  margin: '0 auto',
+                  textAlign: 'center',
+                  backgroundColor: '#6366f1',
+                  padding: '10px',
+                  //borderRadius: '5px',
+                }}
+    >
+      <label style={{ cursor: 'pointer', fontWeight: '500', color: 'white', display: 'inline-block', }}>
         📁 Upload .c file:
         <input
           type="file"

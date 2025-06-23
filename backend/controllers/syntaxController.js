@@ -1,8 +1,8 @@
 function tokenize(code) {
-  // Handle multi-character operators first, then single characters
   return code
-    .replace(/(>=|<=|==|!=|\+\+|--|\+=|-=|\*=|\/=|&&|\|\|)/g, ' $1 ') // Multi-character operators
-    .replace(/([{}();=+\-*/<>!])/g, ' $1 ') // Single-character operators
+    .replace(/(>=|<=|==|!=|\+\+|--|\+=|-=|\*=|\/=|&&|\|\|)/g, ' $1 ')
+    .replace(/(\d+\.\d+)/g, ' $1 ')
+    .replace(/([{}();=+\-*/<>!])/g, ' $1 ')
     .split(/\s+/)
     .filter(Boolean);
 }
@@ -12,7 +12,7 @@ function isIdentifier(token) {
 }
 
 function isNumber(token) {
-  return /^\d+$/.test(token);
+  return /^\d+(\.\d+)?$/.test(token);
 }
 
 function isType(token) {
@@ -32,7 +32,6 @@ function parseExpression(tokens, index) {
         expectingOperand = false;
         lastTokenWasOperator = false;
       } else if (token === '(') {
-        // Handle parenthesized expressions
         index++;
         const exprResult = parseExpression(tokens, index);
         if (!exprResult.success) return exprResult;
@@ -52,7 +51,7 @@ function parseExpression(tokens, index) {
         expectingOperand = true;
         lastTokenWasOperator = true;
       } else {
-        break; // end of expression
+        break;
       }
     }
   }
@@ -70,22 +69,23 @@ function parseDeclaration(tokens, index) {
     return { success: false, error: `Expected type specifier at '${tokens[index]}'`, index: start };
   }
   index++;
+
   if (!isIdentifier(tokens[index])) {
     return { success: false, error: `Expected identifier after type`, index: start };
   }
   index++;
-  
-  // Handle optional initialization
+
   if (tokens[index] === '=') {
     index++;
     const exprResult = parseExpression(tokens, index);
     if (!exprResult.success) return { ...exprResult, index: start };
     index = exprResult.index;
   }
-  
-  if (tokens[index] !== ';') {
+
+  if (index >= tokens.length || tokens[index] !== ';') {
     return { success: false, error: `Expected ';' at end of declaration`, index: start };
   }
+
   return { success: true, index: index + 1 };
 }
 
@@ -149,12 +149,11 @@ function parseIf(tokens, index) {
   index = exprResult.index;
   if (tokens[index] !== ')') return { success: false, error: `Expected ')' after condition`, index: start };
   index++;
-  
+
   const blockResult = parseBlock(tokens, index);
   if (!blockResult.success) return { ...blockResult, index: start };
   index = blockResult.index;
 
-  // Handle optional else
   if (tokens[index] === 'else') {
     index++;
     const elseBlockResult = parseBlock(tokens, index);
@@ -176,10 +175,10 @@ function parseWhile(tokens, index) {
   index = exprResult.index;
   if (tokens[index] !== ')') return { success: false, error: `Expected ')' after condition`, index: start };
   index++;
-  
+
   const blockResult = parseBlock(tokens, index);
   if (!blockResult.success) return { ...blockResult, index: start };
-  
+
   return { success: true, index: blockResult.index };
 }
 
@@ -190,41 +189,55 @@ function parseFor(tokens, index) {
   if (tokens[index] !== '(') return { success: false, error: `Expected '(' after for`, index: start };
   index++;
 
-  // Initialization (can be declaration or expression)
   let initResult;
   if (isType(tokens[index])) {
     initResult = parseDeclaration(tokens, index);
   } else {
     initResult = parseExpression(tokens, index);
     if (initResult.success && tokens[initResult.index] === ';') {
-      initResult.index++; // Skip semicolon
+      initResult.index++;
     }
   }
   if (!initResult.success) return { ...initResult, index: start };
   index = initResult.index;
 
-  // Condition
   const condResult = parseExpression(tokens, index);
   if (!condResult.success) return { ...condResult, index: start };
   index = condResult.index;
   if (tokens[index] !== ';') return { success: false, error: `Expected ';' after for condition`, index: start };
   index++;
 
-  // Update
   const updateResult = parseExpression(tokens, index);
   if (!updateResult.success) return { ...updateResult, index: start };
   index = updateResult.index;
   if (tokens[index] !== ')') return { success: false, error: `Expected ')' after for update`, index: start };
   index++;
 
-  // Body
   const blockResult = parseBlock(tokens, index);
   if (!blockResult.success) return { ...blockResult, index: start };
-  
+
+  return { success: true, index: blockResult.index };
+}
+
+function parseFunction(tokens, index) {
+  const start = index;
+  if (!isType(tokens[index])) return { success: false, error: `Expected return type`, index: start };
+  index++;
+  if (!isIdentifier(tokens[index])) return { success: false, error: `Expected function name`, index: start };
+  index++;
+  if (tokens[index] !== '(') return { success: false, error: `Expected '(' after function name`, index: start };
+  index++;
+  if (tokens[index] !== ')') return { success: false, error: `Expected ')' for parameter list`, index: start };
+  index++;
+  const blockResult = parseBlock(tokens, index);
+  if (!blockResult.success) return { ...blockResult, index: start };
   return { success: true, index: blockResult.index };
 }
 
 function parseStatement(tokens, index) {
+  if (isType(tokens[index]) && isIdentifier(tokens[index + 1]) && tokens[index + 2] === '(') {
+    return parseFunction(tokens, index);
+  }
   if (isType(tokens[index])) return parseDeclaration(tokens, index);
   if (tokens[index] === 'if') return parseIf(tokens, index);
   if (tokens[index] === 'while') return parseWhile(tokens, index);

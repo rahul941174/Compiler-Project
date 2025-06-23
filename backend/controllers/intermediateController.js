@@ -49,14 +49,28 @@ exports.handleIntermediateCode = (req, res) => {
 
   let i = 0;
   while (i < lines.length) {
-    let line = lines[i];
+    const line = lines[i];
 
-    // Handle if-condition
+    if (line.startsWith('int ') && line.includes('main')) {
+      i++;
+      continue;
+    }
+
+    if (line === '{' || line === '}') {
+      i++;
+      continue;
+    }
+
+    if (line.startsWith('return')) {
+      i++;
+      continue;
+    }
+
     if (line.startsWith('if') && line.includes('(') && line.includes(')')) {
       const conditionMatch = line.match(/\((.*?)\)/);
       const condition = conditionMatch ? conditionMatch[1].trim() : null;
 
-      const [left, op, right] = condition.split(/([<>=!]+)/).map(t => t.trim());
+      const [left, op, right] = condition.split(/([<>=!]=?|==)/).map(t => t.trim());
       const trueLabel = createLabel();
       const endLabel = createLabel();
 
@@ -64,15 +78,14 @@ exports.handleIntermediateCode = (req, res) => {
       intermediate.push(`GOTO ${endLabel}`);
       intermediate.push(`${trueLabel}:`);
 
-      i++; // Skip to next line after 'if (...)'
-      if (lines[i] === '{') i++; // skip opening brace
+      i++;
+      if (lines[i] === '{') i++;
 
-      // Process block until '}'
       while (i < lines.length && lines[i] !== '}') {
         const stmt = lines[i];
         if (stmt.includes('=')) {
           const [lhs, rhsRaw] = stmt.split('=');
-          let rhs = rhsRaw.replace(';', '').trim();
+          const rhs = rhsRaw.replace(';', '').trim();
           const tokens = tokenizeExpression(rhs);
           const result = generateExprIntermediate(tokens, tempVarGen, intermediate);
           intermediate.push(`${lhs.trim()} = ${result}`);
@@ -81,24 +94,21 @@ exports.handleIntermediateCode = (req, res) => {
       }
 
       intermediate.push(`${endLabel}:`);
-      i++; // skip closing brace
+      i++;
+      continue;
     }
 
-    // Handle assignment
-    else if (line.includes('=')) {
+    if (line.includes('=')) {
       const [lhs, rhsRaw] = line.split('=');
-      let rhs = rhsRaw.replace(';', '').trim();
+      const rhs = rhsRaw.replace(';', '').trim();
       const tokens = tokenizeExpression(rhs);
       const result = generateExprIntermediate(tokens, tempVarGen, intermediate);
       intermediate.push(`${lhs.trim()} = ${result}`);
       i++;
+      continue;
     }
 
-    // Unsupported lines
-    else {
-      intermediate.push(`// Unsupported or non-assignment line: ${line}`);
-      i++;
-    }
+    i++;
   }
 
   res.json({ code: intermediate });
