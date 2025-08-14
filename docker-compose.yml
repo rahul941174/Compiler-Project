@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  backend:
+    container_name: backend
+    image: rahul941174/c-compiler-simulator:backend
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  frontend:
+    container_name: frontend
+    image: rahul941174/c-compiler-simulator:frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
